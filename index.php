@@ -21,6 +21,18 @@
         .m-l-1em{ margin-left:1em; }
     </style>
 
+    <script type='text/javascript'>
+        function delete_user( id ){
+
+            var answer = confirm('Are you sure@@?');
+            if (answer){
+                // if user clicked ok,
+                // pass the id to delete.php and execute the delete query
+                window.location = 'delete.php?id=' + id;
+            }
+        }
+    </script>
+
 </head>
 <body>
 
@@ -35,9 +47,32 @@
     // include database connection
     include 'config/database.php';
 
+
+    // PAGINATION VARIABLES
+    // page is the current page, if there's nothing set, default is page 1
+    $page = isset($_GET['page']) ? $_GET['page'] : 1;
+
+    // set records or rows of data per page
+    $records_per_page = 5;
+
+    // calculate for the query LIMIT clause
+    $from_record_num = ($records_per_page * $page) - $records_per_page;
+
+
+
+    //verify the delete action
+    $action = isset($_GET['action']) ? $_GET['action'] : "";
+
+    // if it was redirected from delete.php
+    if($action=='deleted'){
+        echo "<div class='alert alert-success'>Record was deleted.</div>";
+    }
+
     // select all data
-    $query = "SELECT id, name, description, price FROM products ORDER BY id DESC";
+    $query = "SELECT id, name, description, price FROM products ORDER BY id DESC LIMIT :from_record_num, :records_per_page";
     $stmt = $con->prepare($query);
+    $stmt->bindParam(":from_record_num", $from_record_num, PDO::PARAM_INT);
+    $stmt->bindParam("records_per_page", $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
 
     // this is how to get number of rows returned
@@ -90,6 +125,23 @@
 
         // end table
         echo "</table>";
+
+        // PAGINATION
+        // count total number of rows
+        $query = "SELECT COUNT(*) as total_rows FROM products";
+        $stmt = $con->prepare($query);
+
+        // execute query
+        $stmt->execute();
+
+        // get total rows
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $total_rows = $row['total_rows'];
+
+
+        // paginate records
+        $page_url="index.php?";
+        include_once "paging.php";
 
     }
 
